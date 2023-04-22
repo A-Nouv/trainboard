@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Flex,
@@ -10,15 +12,20 @@ import {
     MenuDivider,
     useColorModeValue,
 } from '@chakra-ui/react';
-import { deleteWorkoutFromCollecton } from '../context/StoreContext';
-import { useNavigate } from 'react-router-dom';
+import { 
+    deleteWorkoutFromCollecton,
+    addFavoriteWorkoutToUserDocument,
+    removeFavoriteWorkoutFromUserDocument,
+    updateFavoriteWorkout 
+} from '../context/StoreContext';
 import { UserAuth } from '../context/AuthContext';
-
-export default function SelfFeedbackBar({ workoutName, isPrivate, wasDeleted, setWasDeleted }) {
+export default function SelfFeedbackBar({ workoutName, workoutId, isPrivate, isFavorite, wasDeleted, setWasDeleted }) {
     // Navigate Hook, used to rerouting user
     const navigate = useNavigate();
     // Firebase user object
     const { user } = UserAuth();
+    // State
+    const [isFavorited, setIsFavorited] = useState(isFavorite);
 
     // Handles deletion of workout
     async function handleDeleteWorkout() {
@@ -29,9 +36,25 @@ export default function SelfFeedbackBar({ workoutName, isPrivate, wasDeleted, se
                 navigate('/dashboard');
             }, 2000);
         } catch (error) {
-            console.log("Unable to delete workout: " + error);
+            console.error("Unable to delete workout: " + error);
         }
     }
+    
+
+    async function handleFavoriteWorkout() {
+        try {
+            setIsFavorited(!isFavorited);
+            if (!isFavorited) {
+                await addFavoriteWorkoutToUserDocument(user, workoutId);
+            } else {
+                await removeFavoriteWorkoutFromUserDocument(user, workoutId);
+            }
+            await updateFavoriteWorkout(user, workoutName, workoutId, isPrivate, !(isFavorited));
+        } catch (error) {
+            console.error("Unable to favorite workout: " + error);
+        }
+    }
+
 
     return (
         <>
@@ -60,7 +83,7 @@ export default function SelfFeedbackBar({ workoutName, isPrivate, wasDeleted, se
                             </Menu>
                         </Flex>
 
-                        <Button bg="green" color="white">
+                        <Button bg="green" color="white" onClick={handleFavoriteWorkout}>
                             Favorite
                         </Button>
                     </HStack>
